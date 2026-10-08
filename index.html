@@ -72,13 +72,13 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
 const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const T=s=>new Date(s+"T00:00:00").getTime();
-const today=()=>T(iso(new Date()));
+const asof=()=>S.asof||iso(new Date());const today=()=>T(asof());
 const uid=()=>Math.random().toString(36).slice(2,8);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money=n=>(S.project?.cur||"$")+" "+Math.round(n).toLocaleString();
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 const unlocked=n=>n==1||(n==2&&S.project)||(n==3&&S.phases.length)||(n>=4&&S.tasks.length);
-const names=["1 Project","2 Timeline","3 WBS","4 Progress monitoring","5 Dashboard"];
+const names=["1 Plan","2 Timeline","3 WBS","4 Progress monitoring","5 Dashboard"];
 
 /* ---------- calculations ---------- */
 function weights(){const tb=S.tasks.reduce((a,t)=>a+(+t.budget||0),0);return S.tasks.map(t=>tb>0?(+t.budget||0)/tb:1/S.tasks.length)}
@@ -94,7 +94,7 @@ function go(n){tab=n;for(let i=1;i<=5;i++)$("v"+i).hidden=i!=n;renderNav();[0,v1
 /* ---------- KPIs (live) ---------- */
 function kpis(){
  const p=S.project;$("title").textContent=p?p.name:"Project Control Dashboard";
- $("sub").textContent=p?`${p.owner||"—"} · ${p.start} to ${p.end}`:"Create a project to begin";
+ $("sub").textContent=p?`${p.owner||"—"} · ${p.start} to ${p.end} · status date ${asof()}`:"Create a project to begin";
  if(!S.tasks.length){$("kpis").innerHTML=`<div class="kpi"><b>${S.phases.length}</b><span>Phases</span></div><div class="kpi"><b>0</b><span>WBS tasks</span></div>`;return}
  const a=actual(),pl=planAt(today()),spi=pl>0?a/pl:1,spent=S.tasks.reduce((x,t)=>x+(+t.actual||0),0),bud=S.tasks.reduce((x,t)=>x+(+t.budget||0),0);
  const ev=a*bud,cpi=spent>0?ev/spent:1;
@@ -105,17 +105,17 @@ function kpis(){
 
 /* ---------- 1 project ---------- */
 function v1(){const p=S.project||{name:"",owner:"",start:iso(new Date()),end:"",budget:"",cur:"$"};
- $("v1").innerHTML=`<div class="card"><h2>Step 1 · Create project</h2><p class="hint">Enter the basic project information, then continue to the timeline.</p>
+ $("v1").innerHTML=`<div class="card"><h2>Import your plan from Excel</h2><p class="hint">Build the timeline and WBS in Excel, import it here, then use this app to record actual progress and monitor. If the plan changes, re-import it — progress you have already recorded is kept (matched by task name).</p>
+ <div class="row" style="margin-top:0"><button class="btn" onclick="pickFile(importFull)">Import Excel project</button><button class="btn g" onclick="template()">Download Excel template</button></div>
+ <p class="fmt">Workbook sheets: <code>Project</code> (Name, Manager, Start, Finish, Budget, Currency) · <code>Timeline</code> (Phase, Start, End) · <code>WBS</code> (Phase, Task, Owner, Start, End, Budget, Progress %, Actual Cost). Only <code>WBS</code> is required — phases and project dates are derived from it if the other sheets are missing. Dates: YYYY-MM-DD, DD/MM/YYYY or Excel dates. Progress: 0–100 or an Excel percentage.</p></div>
+ <div class="card"><h2>Or create the plan manually</h2><p class="hint">No Excel plan? Enter the project here, then add the timeline and WBS in the next steps.</p>
  <div class="grid"><label>Project name<input id="pn" value="${esc(p.name)}" placeholder="e.g. Warehouse Construction"></label>
  <label>Project manager<input id="po" value="${esc(p.owner)}"></label>
  <label>Start date<input type="date" id="ps" value="${p.start}"></label>
  <label>Target finish<input type="date" id="pe" value="${p.end}"></label>
  <label>Total budget<input type="number" id="pb" value="${p.budget}" min="0"></label>
  <label>Currency<input id="pc" value="${esc(p.cur)}" maxlength="4"></label></div>
- <div class="row"><button class="btn" onclick="saveProject()">${S.project?"Update project":"Create project"}</button><span id="m1" class="hint" style="margin:0"></span></div></div>
- <div class="card"><h2>Or import from Excel</h2><p class="hint">Already have your timeline and progress activities in Excel? Import them and skip steps 1–4.</p>
- <div class="row" style="margin-top:0"><button class="btn" onclick="pickFile(importFull)">Import Excel project</button><button class="btn g" onclick="template()">Download Excel template</button></div>
- <p class="fmt">Workbook sheets: <code>Project</code> (Name, Manager, Start, Finish, Budget, Currency) · <code>Timeline</code> (Phase, Start, End) · <code>WBS</code> (Phase, Task, Owner, Start, End, Budget, Progress %, Actual Cost). Only <code>WBS</code> is required — phases and project dates are derived from it if the other sheets are missing. Dates: YYYY-MM-DD, DD/MM/YYYY or Excel dates. Progress: 0–100 or an Excel percentage.</p></div>`}
+ <div class="row"><button class="btn" onclick="saveProject()">${S.project?"Update project":"Create project"}</button><span id="m1" class="hint" style="margin:0"></span></div></div>`}
 function saveProject(){const n=$("pn").value.trim(),s=$("ps").value,e=$("pe").value;
  if(!n||!s||!e||T(e)<=T(s)){$("m1").textContent="Please enter a name and valid start/finish dates.";return}
  S.project={name:n,owner:$("po").value,start:s,end:e,budget:+$("pb").value||0,cur:$("pc").value||"$"};save();kpis();go(2)}
@@ -173,12 +173,14 @@ function v4(){let rows="";S.phases.forEach(p=>{rows+=`<tr><td class="ph" colspan
  <td><input type="range" min="0" max="100" step="5" value="${t.progress||0}" oninput="setP('${t.id}',this.value)" aria-label="Progress ${esc(t.name)}"> <b class="num" id="pv${t.id}">${t.progress||0}%</b></td>
  <td><input type="number" min="0" style="width:110px" value="${t.actual||0}" oninput="setA('${t.id}',this.value)"></td>
  <td><span class="pill" id="st${t.id}" style="background:${c}">${s}</span></td><td class="num">${t.end}</td></tr>`})});
- $("v4").innerHTML=`<div class="card sc"><h2>Step 4 · Real-time progress monitoring</h2><p class="hint">Drag the slider or type actual cost — the KPIs above and the dashboard update instantly. Today's progress is logged for the S-curve.</p>
+ $("v4").innerHTML=`<div class="card sc"><h2>Step 4 · Real-time progress monitoring</h2><p class="hint">Drag the slider or type actual cost — the KPIs above and the dashboard update instantly. Progress is logged against the status date for the S-curve.</p>
+ <div class="row" style="margin:0 0 12px"><label style="max-width:210px">Status date<input type="date" id="sd" value="${asof()}" onchange="setAsof(this.value)"></label><span class="hint" style="margin:0">The reporting date for the progress you enter (e.g. last Friday). Planned % and status are measured against it.</span></div>
  <table><tr><th>WBS</th><th>Task</th><th>% complete</th><th>Actual cost</th><th>Status</th><th>Due</th></tr>${rows}</table>
  <div class="row"><button class="btn" onclick="go(5)">View dashboard</button><button class="btn g" onclick="pickFile(importProgress)">Import progress from Excel</button><button class="btn g" onclick="exportX()">Export Excel</button></div>
  <p class="fmt">Progress file columns: <code>WBS</code> or <code>Task</code> (used to match), <code>Progress %</code>, <code>Actual Cost</code>. A file exported from this dashboard works as-is.</p></div>`}
 function refresh(t){const[s,c]=stat(t),el=$("st"+t.id);if(el){el.textContent=s;el.style.background=c}
- S.log[iso(new Date())]=actual();save();kpis()}
+ S.log[asof()]=actual();save();kpis()}
+function setAsof(v){S.asof=v||"";save();kpis();v4()}
 function setP(id,v){const t=S.tasks.find(x=>x.id==id);t.progress=+v;$("pv"+id).textContent=v+"%";refresh(t)}
 function setA(id,v){const t=S.tasks.find(x=>x.id==id);t.actual=+v||0;refresh(t)}
 
@@ -187,7 +189,7 @@ function scurve(){
  const mn=Math.min(T(S.project.start),...S.tasks.map(t=>T(t.start))),mx=Math.max(T(S.project.end),...S.tasks.map(t=>T(t.end)));
  const W=520,H=230,L=34,B=22,x=t=>L+(t-mn)/(mx-mn||1)*(W-L-8),y=v=>H-B-v*(H-B-10);
  let pl="";for(let i=0;i<=30;i++){const t=mn+(mx-mn)*i/30;pl+=`${x(t).toFixed(1)},${y(planAt(t)).toFixed(1)} `}
- const lg={...S.log};lg[iso(new Date())]=actual();const pts=Object.keys(lg).sort().map(d=>`${x(T(d)).toFixed(1)},${y(lg[d]).toFixed(1)}`);
+ const lg={...S.log};lg[asof()]=actual();const pts=Object.keys(lg).sort().map(d=>`${x(T(d)).toFixed(1)},${y(lg[d]).toFixed(1)}`);
  let g="";[0,.25,.5,.75,1].forEach(v=>g+=`<line x1="${L}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="2" y="${y(v)+3}">${v*100}%</text>`);
  return`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="S-curve planned vs actual">${g}
  <polyline points="${pl}" fill="none" stroke="var(--plan)" stroke-width="2.5" stroke-dasharray="5 4"/>
@@ -244,8 +246,9 @@ function importFull(wb,fname){
  const s0=pd(pick(pj,["start","startdate"])),e0=pd(pick(pj,["finish","end","enddate","targetfinish"]));
  const proj={name:String(pick(pj,["name","projectname","project"])||fname.replace(/\.[^.]+$/,"")),owner:String(pick(pj,["manager","projectmanager","owner","pm"])),
   start:s0&&T(s0)<=mn?s0:iso(new Date(mn)),end:e0&&T(e0)>=mx?e0:iso(new Date(mx)),budget:pn(pick(pj,["budget","totalbudget"]))||tasks.reduce((a,t)=>a+t.budget,0),cur:String(pick(pj,["currency","cur"])||"$")};
- S={project:proj,phases:ph,tasks,log:{}};recode();if(tasks.some(t=>t.progress>0))S.log[iso(new Date())]=actual();
- save();kpis();toast(`Imported ${ph.length} phases and ${tasks.length} tasks.`);go(5)}
+ const old=S.tasks||[];let kept=0;tasks.forEach(t=>{const o=old.find(x=>norm(x.name)==norm(t.name));if(o){if(!t.progress&&o.progress){t.progress=o.progress;kept++}if(!t.actual&&o.actual)t.actual=o.actual}});
+ S={project:proj,phases:ph,tasks,log:S.log||{},asof:S.asof||""};recode();if(tasks.some(t=>t.progress>0))S.log[asof()]=actual();
+ save();kpis();toast(`Imported ${ph.length} phases and ${tasks.length} tasks.`+(kept?` Kept recorded progress for ${kept} tasks.`:""));go(4)}
 
 function importProgress(wb){
  const rows=findSheet(wb,["progress","wbs","tasks","activities","activity"])||sheetRows(wb.Sheets[wb.SheetNames[0]]);
@@ -254,7 +257,7 @@ function importProgress(wb){
   const t=S.tasks.find(x=>c&&x.code==c)||S.tasks.find(x=>n&&norm(x.name)==n);
   if(!t){miss.push(c||pick(r,K.task));return}
   const p=pick(r,K.prog),a=pick(r,K.act);if(p!=="")t.progress=pp(p);if(a!=="")t.actual=pn(a);ok++});
- S.log[iso(new Date())]=actual();save();kpis();go(4);
+ S.log[asof()]=actual();save();kpis();go(4);
  toast(`Updated ${ok} tasks.`+(miss.length?` Not matched: ${miss.slice(0,4).join(", ")}${miss.length>4?"…":""}`:""))}
 
 function buildWB(st){const wb=XLSX.utils.book_new(),p=st.project,pn_=id=>(st.phases.find(x=>x.id==id)||{}).name||"";
@@ -282,7 +285,7 @@ function demo(){const d=n=>iso(new Date(Date.now()+n*864e5));
  k(3,"Inspection & handover","A. Rahman",60,80,20000,0,0);
  S.log[d(-14)]=.18;S.log[d(-7)]=.3;S.log[d(-3)]=.37;recode();save();kpis();go(5)}
 function resetAll(){if(confirm("Delete this project and all data?")){S={project:null,phases:[],tasks:[],log:{}};save();kpis();go(1)}}
-kpis();go(S.project?(S.tasks.length?5:2):1);
+kpis();go(S.project?(S.tasks.length?4:2):1);
 </script>
 </body>
 </html>
