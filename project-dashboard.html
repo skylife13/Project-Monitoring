@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Project Control Dashboard</title>
+<style>
+:root{--bg:#eef1ee;--panel:#fff;--ink:#17231f;--mut:#667570;--line:#d5ddd8;--acc:#0e6b5c;--acc2:#e0a21b;--bad:#c2410c;--ok:#15803d;--plan:#8aa19a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10181a;--panel:#18242a;--ink:#e6efeb;--mut:#8ea39b;--line:#2b3b40;--acc:#3fc2a8;--acc2:#e8b84a;--bad:#f08a5d;--ok:#5fd08a;--plan:#5f7a74}}
+:root[data-theme="dark"]{--bg:#10181a;--panel:#18242a;--ink:#e6efeb;--mut:#8ea39b;--line:#2b3b40;--acc:#3fc2a8;--acc2:#e8b84a;--bad:#f08a5d;--ok:#5fd08a;--plan:#5f7a74}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+header{padding:18px 20px 8px;max-width:1200px;margin:auto;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end}
+h1{margin:0;font:700 22px "Trebuchet MS","Segoe UI",sans-serif;letter-spacing:-.3px}
+.sub{color:var(--mut);font-size:13px}
+main{max-width:1200px;margin:auto;padding:8px 20px 40px}
+nav{display:flex;gap:6px;overflow-x:auto;margin:10px 0 14px;padding-bottom:4px}
+nav button{white-space:nowrap;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px;border-radius:8px;cursor:pointer;font:600 13px inherit}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+nav button:disabled{opacity:.45;cursor:not-allowed}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+.kpi b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.kpi span{font-size:12px;color:var(--mut)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:14px}
+h2{margin:0 0 4px;font-size:17px}.hint{color:var(--mut);font-size:13px;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--mut);font-weight:600}
+input,select{width:100%;margin-top:3px;padding:8px 9px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:9px 16px;font:600 14px inherit;cursor:pointer}
+.btn.g{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.s{padding:4px 9px;font-size:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.sc{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
+th{text-align:left;color:var(--mut);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.ph{font-weight:700;background:color-mix(in srgb,var(--acc) 8%,transparent)}
+.num{font-variant-numeric:tabular-nums}
+input[type=range]{padding:0;accent-color:var(--acc);margin:0;width:140px}
+.pill{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;color:#fff}
+.gantt{min-width:640px}.gr{display:grid;grid-template-columns:200px 1fr;align-items:center;border-bottom:1px solid var(--line);min-height:28px;font-size:12px}
+.gr .t{position:relative;height:28px}
+.gb{position:absolute;top:8px;height:12px;border-radius:3px;background:var(--plan);overflow:hidden}
+.gb i{display:block;height:100%;background:var(--acc)}
+.gb.p{top:5px;height:18px;opacity:.9}
+.today{position:absolute;top:0;bottom:0;width:2px;background:var(--bad)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:13px;max-width:90%;z-index:9;box-shadow:0 4px 16px #0004}
+.fmt{font-size:12px;color:var(--mut);margin:10px 0 0}.fmt code{background:var(--bg);padding:1px 5px;border-radius:4px}
+.empty{color:var(--mut);padding:18px;text-align:center}
+svg text{fill:var(--mut);font-size:10px}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<header>
+  <div><h1 id="title">Project Control Dashboard</h1><div class="sub" id="sub">Create a project to begin</div></div>
+  <div class="row" style="margin:0"><button class="btn g s" onclick="demo()">Load demo data</button><button class="btn g s" onclick="exportX()">Export Excel</button><button class="btn g s" onclick="resetAll()">Reset</button></div>
+</header>
+<main>
+  <div class="kpis" id="kpis"></div>
+  <nav id="nav"></nav>
+  <section id="v1"></section><section id="v2" hidden></section><section id="v3" hidden></section><section id="v4" hidden></section><section id="v5" hidden></section>
+</main>
+<script>
+const KEY="pm_dash_v1";
+let S={project:null,phases:[],tasks:[],log:{}},tab=1;
+try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const T=s=>new Date(s+"T00:00:00").getTime();
+const today=()=>T(iso(new Date()));
+const uid=()=>Math.random().toString(36).slice(2,8);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money=n=>(S.project?.cur||"$")+" "+Math.round(n).toLocaleString();
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const unlocked=n=>n==1||(n==2&&S.project)||(n==3&&S.phases.length)||(n>=4&&S.tasks.length);
+const names=["1 Project","2 Timeline","3 WBS","4 Progress monitoring","5 Dashboard"];
+
+/* ---------- calculations ---------- */
+function weights(){const tb=S.tasks.reduce((a,t)=>a+(+t.budget||0),0);return S.tasks.map(t=>tb>0?(+t.budget||0)/tb:1/S.tasks.length)}
+function planAt(ts){const w=weights();return S.tasks.reduce((a,t,i)=>{const s=T(t.start),e=T(t.end);return a+w[i]*(e>s?clamp((ts-s)/(e-s)):(ts>=e?1:0))},0)}
+function actual(){const w=weights();return S.tasks.reduce((a,t,i)=>a+w[i]*(t.progress||0)/100,0)}
+function stat(t){const p=t.progress||0;if(p>=100)return["Done","var(--ok)"];const s=T(t.start),e=T(t.end),n=today();const pl=e>s?clamp((n-s)/(e-s)):(n>=e?1:0)
+ if(n>e)return["Overdue","var(--bad)"];if(n<s&&p==0)return["Not started","var(--plan)"];return p+.05<pl*100-10?["Behind","var(--bad)"]:["On track","var(--ok)"]}
+
+/* ---------- nav ---------- */
+function renderNav(){$("nav").innerHTML=names.map((n,i)=>`<button class="${tab==i+1?"on":""}" ${unlocked(i+1)?"":"disabled"} onclick="go(${i+1})">${n}</button>`).join("")}
+function go(n){tab=n;for(let i=1;i<=5;i++)$("v"+i).hidden=i!=n;renderNav();[0,v1,v2,v3,v4,v5][n]()}
+
+/* ---------- KPIs (live) ---------- */
+function kpis(){
+ const p=S.project;$("title").textContent=p?p.name:"Project Control Dashboard";
+ $("sub").textContent=p?`${p.owner||"—"} · ${p.start} to ${p.end}`:"Create a project to begin";
+ if(!S.tasks.length){$("kpis").innerHTML=`<div class="kpi"><b>${S.phases.length}</b><span>Phases</span></div><div class="kpi"><b>0</b><span>WBS tasks</span></div>`;return}
+ const a=actual(),pl=planAt(today()),spi=pl>0?a/pl:1,spent=S.tasks.reduce((x,t)=>x+(+t.actual||0),0),bud=S.tasks.reduce((x,t)=>x+(+t.budget||0),0);
+ const ev=a*bud,cpi=spent>0?ev/spent:1;
+ $("kpis").innerHTML=[[Math.round(a*100)+"%","Actual progress"],[Math.round(pl*100)+"%","Planned today"],
+ [spi.toFixed(2),"Schedule index (SPI)",spi<.9?"var(--bad)":"var(--ok)"],[cpi.toFixed(2),"Cost index (CPI)",cpi<.9?"var(--bad)":"var(--ok)"],
+ [money(spent),"of "+money(bud)+" spent"],[S.tasks.filter(t=>stat(t)[0]=="Overdue"||stat(t)[0]=="Behind").length,"Tasks at risk"]]
+ .map(k=>`<div class="kpi"><b ${k[2]?`style="color:${k[2]}"`:""}>${k[0]}</b><span>${k[1]}</span></div>`).join("")}
+
+/* ---------- 1 project ---------- */
+function v1(){const p=S.project||{name:"",owner:"",start:iso(new Date()),end:"",budget:"",cur:"$"};
+ $("v1").innerHTML=`<div class="card"><h2>Step 1 · Create project</h2><p class="hint">Enter the basic project information, then continue to the timeline.</p>
+ <div class="grid"><label>Project name<input id="pn" value="${esc(p.name)}" placeholder="e.g. Warehouse Construction"></label>
+ <label>Project manager<input id="po" value="${esc(p.owner)}"></label>
+ <label>Start date<input type="date" id="ps" value="${p.start}"></label>
+ <label>Target finish<input type="date" id="pe" value="${p.end}"></label>
+ <label>Total budget<input type="number" id="pb" value="${p.budget}" min="0"></label>
+ <label>Currency<input id="pc" value="${esc(p.cur)}" maxlength="4"></label></div>
+ <div class="row"><button class="btn" onclick="saveProject()">${S.project?"Update project":"Create project"}</button><span id="m1" class="hint" style="margin:0"></span></div></div>
+ <div class="card"><h2>Or import from Excel</h2><p class="hint">Already have your timeline and progress activities in Excel? Import them and skip steps 1–4.</p>
+ <div class="row" style="margin-top:0"><button class="btn" onclick="pickFile(importFull)">Import Excel project</button><button class="btn g" onclick="template()">Download Excel template</button></div>
+ <p class="fmt">Workbook sheets: <code>Project</code> (Name, Manager, Start, Finish, Budget, Currency) · <code>Timeline</code> (Phase, Start, End) · <code>WBS</code> (Phase, Task, Owner, Start, End, Budget, Progress %, Actual Cost). Only <code>WBS</code> is required — phases and project dates are derived from it if the other sheets are missing. Dates: YYYY-MM-DD, DD/MM/YYYY or Excel dates. Progress: 0–100 or an Excel percentage.</p></div>`}
+function saveProject(){const n=$("pn").value.trim(),s=$("ps").value,e=$("pe").value;
+ if(!n||!s||!e||T(e)<=T(s)){$("m1").textContent="Please enter a name and valid start/finish dates.";return}
+ S.project={name:n,owner:$("po").value,start:s,end:e,budget:+$("pb").value||0,cur:$("pc").value||"$"};save();kpis();go(2)}
+
+/* ---------- 2 timeline ---------- */
+function v2(){const p=S.project;
+ $("v2").innerHTML=`<div class="card"><h2>Step 2 · Set timeline</h2><p class="hint">Add project phases or milestones within ${p.start} → ${p.end}.</p>
+ <div class="grid"><label>Phase name<input id="fn" placeholder="e.g. Design"></label><label>Start<input type="date" id="fs" value="${p.start}"></label><label>End<input type="date" id="fe"></label></div>
+ <div class="row"><button class="btn" onclick="addPhase()">Add phase</button><span id="m2" class="hint" style="margin:0"></span></div></div>
+ <div class="card"><div class="sc">${gantt(false)}</div><div class="row"><button class="btn" onclick="go(3)" ${S.phases.length?"":"disabled"}>Continue to WBS</button></div></div>`}
+function addPhase(){const n=$("fn").value.trim(),s=$("fs").value,e=$("fe").value;
+ if(!n||!s||!e||T(e)<T(s)){$("m2").textContent="Enter a name and a valid date range.";return}
+ S.phases.push({id:uid(),name:n,start:s,end:e});S.phases.sort((a,b)=>T(a.start)-T(b.start));save();renderNav();kpis();v2()}
+function delPhase(id){S.phases=S.phases.filter(p=>p.id!=id);S.tasks=S.tasks.filter(t=>t.phase!=id);save();renderNav();kpis();go(tab)}
+
+/* ---------- gantt ---------- */
+function gantt(withTasks){
+ if(!S.phases.length)return`<div class="empty">No phases yet.</div>`;
+ const all=[...S.phases,...(withTasks?S.tasks:[])];const mn=Math.min(T(S.project.start),...all.map(x=>T(x.start))),mx=Math.max(T(S.project.end),...all.map(x=>T(x.end)));
+ const pos=t=>((t-mn)/(mx-mn||1)*100),n=today();let h=`<div class="gantt">`;
+ const tl=n>=mn&&n<=mx?`<div class="today" style="left:${pos(n)}%"></div>`:"";
+ S.phases.forEach((p,i)=>{
+  const ts=S.tasks.filter(t=>t.phase==p.id),w=weights();
+  let pr=0;if(ts.length){const tb=ts.reduce((a,t)=>a+(+t.budget||1),0);pr=ts.reduce((a,t)=>a+(+t.budget||1)*(t.progress||0),0)/tb}
+  h+=`<div class="gr"><div class="t" style="height:auto;padding:4px 6px;font-weight:700">${esc(p.name)} ${withTasks?"":`<button class="btn g s" onclick="delPhase('${p.id}')" aria-label="Delete">✕</button>`}</div>
+  <div class="t">${tl}<div class="gb p" style="left:${pos(T(p.start))}%;width:${Math.max(.8,pos(T(p.end))-pos(T(p.start)))}%"><i style="width:${withTasks?pr:0}%"></i></div></div></div>`;
+  if(withTasks)ts.forEach(t=>{h+=`<div class="gr"><div class="t" style="height:auto;padding:4px 6px 4px 18px;color:var(--mut)">${esc(t.code)} ${esc(t.name)}</div>
+  <div class="t">${tl}<div class="gb" style="left:${pos(T(t.start))}%;width:${Math.max(.8,pos(T(t.end))-pos(T(t.start)))}%"><i style="width:${t.progress||0}%"></i></div></div></div>`})});
+ return h+`<div class="sub" style="padding-top:6px">${iso(new Date(mn))} → ${iso(new Date(mx))} · red line = today</div></div>`}
+
+/* ---------- 3 WBS ---------- */
+function code(t){const ph=S.phases.findIndex(p=>p.id==t.phase)+1;const k=S.tasks.filter(x=>x.phase==t.phase).indexOf(t)+1;return ph+"."+k}
+function recode(){S.tasks.forEach(t=>t.code=code(t))}
+function v3(){recode();
+ const opts=S.phases.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("");
+ let rows="";S.phases.forEach((p,i)=>{rows+=`<tr><td class="ph" colspan="7">${i+1} · ${esc(p.name)}</td></tr>`;
+  S.tasks.filter(t=>t.phase==p.id).forEach(t=>rows+=`<tr><td class="num">${t.code}</td><td>${esc(t.name)}</td><td>${esc(t.owner)}</td><td class="num">${t.start}</td><td class="num">${t.end}</td><td class="num">${money(t.budget)}</td><td><button class="btn g s" onclick="delTask('${t.id}')">✕</button></td></tr>`)});
+ $("v3").innerHTML=`<div class="card"><h2>Step 3 · Work Breakdown Structure</h2><p class="hint">Break each phase into work packages with dates, owner and budget (budget also sets the progress weight).</p>
+ <div class="grid"><label>Phase<select id="tp">${opts}</select></label><label>Task / work package<input id="tn"></label><label>Owner<input id="to"></label>
+ <label>Start<input type="date" id="ts"></label><label>End<input type="date" id="te"></label><label>Budget<input type="number" id="tb" min="0" value="0"></label></div>
+ <div class="row"><button class="btn" onclick="addTask()">Add task</button><span id="m3" class="hint" style="margin:0"></span></div></div>
+ <div class="card sc"><table><tr><th>WBS</th><th>Work package</th><th>Owner</th><th>Start</th><th>End</th><th>Budget</th><th></th></tr>${rows}</table>
+ <div class="row"><button class="btn" onclick="go(4)" ${S.tasks.length?"":"disabled"}>Continue to monitoring</button></div></div>`;
+ const f=S.phases[0];if(f){$("ts").value=f.start;$("te").value=f.end}
+ $("tp").onchange=e=>{const p=S.phases.find(x=>x.id==e.target.value);$("ts").value=p.start;$("te").value=p.end}}
+function addTask(){const n=$("tn").value.trim(),s=$("ts").value,e=$("te").value;
+ if(!n||!s||!e||T(e)<T(s)){$("m3").textContent="Enter a task name and valid dates.";return}
+ S.tasks.push({id:uid(),phase:$("tp").value,name:n,owner:$("to").value,start:s,end:e,budget:+$("tb").value||0,progress:0,actual:0});
+ save();renderNav();kpis();v3();$("tp").focus()}
+function delTask(id){S.tasks=S.tasks.filter(t=>t.id!=id);save();renderNav();kpis();v3()}
+
+/* ---------- 4 monitoring ---------- */
+function v4(){let rows="";S.phases.forEach(p=>{rows+=`<tr><td class="ph" colspan="6">${esc(p.name)}</td></tr>`;
+ S.tasks.filter(t=>t.phase==p.id).forEach(t=>{const[s,c]=stat(t);rows+=`<tr><td class="num">${t.code}</td><td>${esc(t.name)}</td>
+ <td><input type="range" min="0" max="100" step="5" value="${t.progress||0}" oninput="setP('${t.id}',this.value)" aria-label="Progress ${esc(t.name)}"> <b class="num" id="pv${t.id}">${t.progress||0}%</b></td>
+ <td><input type="number" min="0" style="width:110px" value="${t.actual||0}" oninput="setA('${t.id}',this.value)"></td>
+ <td><span class="pill" id="st${t.id}" style="background:${c}">${s}</span></td><td class="num">${t.end}</td></tr>`})});
+ $("v4").innerHTML=`<div class="card sc"><h2>Step 4 · Real-time progress monitoring</h2><p class="hint">Drag the slider or type actual cost — the KPIs above and the dashboard update instantly. Today's progress is logged for the S-curve.</p>
+ <table><tr><th>WBS</th><th>Task</th><th>% complete</th><th>Actual cost</th><th>Status</th><th>Due</th></tr>${rows}</table>
+ <div class="row"><button class="btn" onclick="go(5)">View dashboard</button><button class="btn g" onclick="pickFile(importProgress)">Import progress from Excel</button><button class="btn g" onclick="exportX()">Export Excel</button></div>
+ <p class="fmt">Progress file columns: <code>WBS</code> or <code>Task</code> (used to match), <code>Progress %</code>, <code>Actual Cost</code>. A file exported from this dashboard works as-is.</p></div>`}
+function refresh(t){const[s,c]=stat(t),el=$("st"+t.id);if(el){el.textContent=s;el.style.background=c}
+ S.log[iso(new Date())]=actual();save();kpis()}
+function setP(id,v){const t=S.tasks.find(x=>x.id==id);t.progress=+v;$("pv"+id).textContent=v+"%";refresh(t)}
+function setA(id,v){const t=S.tasks.find(x=>x.id==id);t.actual=+v||0;refresh(t)}
+
+/* ---------- 5 dashboard ---------- */
+function scurve(){
+ const mn=Math.min(T(S.project.start),...S.tasks.map(t=>T(t.start))),mx=Math.max(T(S.project.end),...S.tasks.map(t=>T(t.end)));
+ const W=520,H=230,L=34,B=22,x=t=>L+(t-mn)/(mx-mn||1)*(W-L-8),y=v=>H-B-v*(H-B-10);
+ let pl="";for(let i=0;i<=30;i++){const t=mn+(mx-mn)*i/30;pl+=`${x(t).toFixed(1)},${y(planAt(t)).toFixed(1)} `}
+ const lg={...S.log};lg[iso(new Date())]=actual();const pts=Object.keys(lg).sort().map(d=>`${x(T(d)).toFixed(1)},${y(lg[d]).toFixed(1)}`);
+ let g="";[0,.25,.5,.75,1].forEach(v=>g+=`<line x1="${L}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="2" y="${y(v)+3}">${v*100}%</text>`);
+ return`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="S-curve planned vs actual">${g}
+ <polyline points="${pl}" fill="none" stroke="var(--plan)" stroke-width="2.5" stroke-dasharray="5 4"/>
+ ${pts.length>1?`<polyline points="${pts.join(" ")}" fill="none" stroke="var(--acc)" stroke-width="3"/>`:""}
+ <circle cx="${pts[pts.length-1].split(",")[0]}" cy="${pts[pts.length-1].split(",")[1]}" r="5" fill="var(--acc)"/>
+ <line x1="${x(today())}" x2="${x(today())}" y1="10" y2="${H-B}" stroke="var(--bad)" stroke-width="2"/>
+ <text x="${L}" y="${H-6}">${iso(new Date(mn))}</text><text x="${W-70}" y="${H-6}">${iso(new Date(mx))}</text></svg>
+ <div class="sub"><span style="color:var(--plan)">- - -</span> Planned &nbsp; <span style="color:var(--acc)">━━</span> Actual &nbsp; <span style="color:var(--bad)">┃</span> Today</div>`}
+function v5(){
+ const c={};S.tasks.forEach(t=>{const s=stat(t)[0];c[s]=(c[s]||0)+1});
+ const risk=S.tasks.filter(t=>["Overdue","Behind"].includes(stat(t)[0]));
+ const spent=S.phases.map(p=>{const ts=S.tasks.filter(t=>t.phase==p.id);return[p.name,ts.reduce((a,t)=>a+(+t.budget||0),0),ts.reduce((a,t)=>a+(+t.actual||0),0)]});
+ const mxv=Math.max(1,...spent.map(s=>Math.max(s[1],s[2])));
+ $("v5").innerHTML=`<div class="two"><div class="card"><h2>S-curve · progress vs plan</h2>${scurve()}</div>
+ <div class="card"><h2>Budget vs actual by phase</h2>${spent.map(s=>`<div style="margin:10px 0"><div class="sub">${esc(s[0])} — ${money(s[2])} / ${money(s[1])}</div>
+ <div style="height:9px;background:var(--plan);border-radius:4px;width:${s[1]/mxv*100}%;opacity:.5"></div>
+ <div style="height:9px;margin-top:3px;background:${s[2]>s[1]?"var(--bad)":"var(--acc2)"};border-radius:4px;width:${s[2]/mxv*100}%"></div></div>`).join("")}</div></div>
+ <div class="card sc"><h2>Schedule (Gantt)</h2>${gantt(true)}</div>
+ <div class="card"><h2>Status &amp; attention list</h2><p class="hint">${Object.entries(c).map(([k,v])=>`${k}: ${v}`).join(" · ")}</p>
+ ${risk.length?risk.map(t=>`<div>• <b>${t.code}</b> ${esc(t.name)} — ${stat(t)[0]}, ${t.progress||0}% (due ${t.end}${t.owner?", "+esc(t.owner):""})</div>`).join(""):`<div class="sub">No tasks behind schedule.</div>`}</div>`}
+
+
+/* ---------- Excel import / export ---------- */
+const toast=m=>{const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),5000)};
+const needX=()=>{if(typeof XLSX==="undefined"){toast("Excel library failed to load (internet access to cdnjs.cloudflare.com is required).");return false}return true};
+function pickFile(cb){if(!needX())return;const i=document.createElement("input");i.type="file";i.accept=".xlsx,.xls,.csv";i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{cb(XLSX.read(e.target.result,{type:"array"}),f.name)}catch(x){toast("Could not read file: "+x.message)}};r.readAsArrayBuffer(f)};i.click()}
+const norm=s=>String(s??"").toLowerCase().replace(/[^a-z0-9]/g,"");
+const sheetRows=ws=>XLSX.utils.sheet_to_json(ws,{raw:true,defval:""}).map(r=>{const o={};for(const k in r)o[norm(k)]=r[k];return o});
+const findSheet=(wb,keys)=>{const n=wb.SheetNames.find(x=>keys.includes(norm(x)));return n?sheetRows(wb.Sheets[n]):null};
+const pick=(r,keys)=>{for(const k of keys)if(r[k]!==undefined&&r[k]!=="")return r[k];return""};
+function pd(v){if(v===""||v==null)return"";if(typeof v==="number")return new Date(Math.round((v-25569)*864e5)).toISOString().slice(0,10);
+ const s=String(v).trim();let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+ m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);if(m)return`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+ const t=Date.parse(s);return isNaN(t)?"":iso(new Date(t))}
+const pn=v=>typeof v==="number"?v:(parseFloat(String(v).replace(/[^0-9.\-]/g,""))||0);
+function pp(v){if(v==="")return 0;let n=typeof v==="number"?v:parseFloat(String(v).replace("%",""))||0;if(typeof v==="number"&&n<=1)n*=100;return Math.round(clamp(n,0,100))}
+const K={phase:["phase","stage","group"],task:["task","activity","workpackage","name","taskname","activityname","description"],owner:["owner","pic","responsible","assignee"],
+ start:["start","startdate","begin","planstart","plannedstart"],end:["end","finish","enddate","finishdate","due","duedate","planend","plannedend"],
+ budget:["budget","cost","plannedcost","bac"],prog:["progress","progresspercent","complete","completion","percentcomplete","pct","done"],act:["actual","actualcost","ac","spent"],code:["wbs","wbscode","code","id","no"]};
+
+function importFull(wb,fname){
+ const w=findSheet(wb,["wbs","tasks","activities","activity","progress","workpackages"])||sheetRows(wb.Sheets[wb.SheetNames[wb.SheetNames.length>1&&findSheet(wb,["project"])?1:0]]);
+ const tl=findSheet(wb,["timeline","phases","schedule","milestones"]),pj=(findSheet(wb,["project","projectinfo"])||[])[0]||{};
+ const ph=[];const getPh=(n,s,e)=>{n=String(n||"General").trim();let p=ph.find(x=>norm(x.name)==norm(n));if(!p){p={id:uid(),name:n,start:s||"",end:e||""};ph.push(p)}return p};
+ (tl||[]).forEach(r=>{const n=pick(r,K.phase.concat(["name","milestone"]));if(n!=="")getPh(n,pd(pick(r,K.start)),pd(pick(r,K.end)))});
+ const tasks=[];
+ w.forEach(r=>{const n=pick(r,K.task);if(n==="")return;const s=pd(pick(r,K.start)),e=pd(pick(r,K.end));if(!s||!e)return;
+  const p=getPh(pick(r,K.phase),s,e);tasks.push({id:uid(),phase:p.id,name:String(n),owner:String(pick(r,K.owner)),start:s,end:e,budget:pn(pick(r,K.budget)),progress:pp(pick(r,K.prog)),actual:pn(pick(r,K.act))})});
+ if(!tasks.length){toast("No valid WBS rows found (need Task, Start and End columns).");return}
+ ph.forEach(p=>{const ts=tasks.filter(t=>t.phase==p.id);if(ts.length){const a=Math.min(...ts.map(t=>T(t.start))),b=Math.max(...ts.map(t=>T(t.end)));
+  if(!p.start||T(p.start)>a)p.start=iso(new Date(a));if(!p.end||T(p.end)<b)p.end=iso(new Date(b))}});
+ const live=ph.filter(p=>p.start&&p.end);ph.length=0;ph.push(...live);ph.sort((a,b)=>T(a.start)-T(b.start));
+ const mn=Math.min(...ph.map(p=>T(p.start))),mx=Math.max(...ph.map(p=>T(p.end)));
+ const s0=pd(pick(pj,["start","startdate"])),e0=pd(pick(pj,["finish","end","enddate","targetfinish"]));
+ const proj={name:String(pick(pj,["name","projectname","project"])||fname.replace(/\.[^.]+$/,"")),owner:String(pick(pj,["manager","projectmanager","owner","pm"])),
+  start:s0&&T(s0)<=mn?s0:iso(new Date(mn)),end:e0&&T(e0)>=mx?e0:iso(new Date(mx)),budget:pn(pick(pj,["budget","totalbudget"]))||tasks.reduce((a,t)=>a+t.budget,0),cur:String(pick(pj,["currency","cur"])||"$")};
+ S={project:proj,phases:ph,tasks,log:{}};recode();if(tasks.some(t=>t.progress>0))S.log[iso(new Date())]=actual();
+ save();kpis();toast(`Imported ${ph.length} phases and ${tasks.length} tasks.`);go(5)}
+
+function importProgress(wb){
+ const rows=findSheet(wb,["progress","wbs","tasks","activities","activity"])||sheetRows(wb.Sheets[wb.SheetNames[0]]);
+ let ok=0,miss=[];
+ rows.forEach(r=>{const c=String(pick(r,K.code)).trim(),n=norm(pick(r,K.task));if(!c&&!n)return;
+  const t=S.tasks.find(x=>c&&x.code==c)||S.tasks.find(x=>n&&norm(x.name)==n);
+  if(!t){miss.push(c||pick(r,K.task));return}
+  const p=pick(r,K.prog),a=pick(r,K.act);if(p!=="")t.progress=pp(p);if(a!=="")t.actual=pn(a);ok++});
+ S.log[iso(new Date())]=actual();save();kpis();go(4);
+ toast(`Updated ${ok} tasks.`+(miss.length?` Not matched: ${miss.slice(0,4).join(", ")}${miss.length>4?"…":""}`:""))}
+
+function buildWB(st){const wb=XLSX.utils.book_new(),p=st.project,pn_=id=>(st.phases.find(x=>x.id==id)||{}).name||"";
+ const add=(rows,n)=>{const ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=rows[0].map(()=>({wch:18}));XLSX.utils.book_append_sheet(wb,ws,n)};
+ add([["Name","Manager","Start","Finish","Budget","Currency"],[p.name,p.owner,p.start,p.end,p.budget,p.cur]],"Project");
+ add([["Phase","Start","End"],...st.phases.map(x=>[x.name,x.start,x.end])],"Timeline");
+ add([["WBS","Phase","Task","Owner","Start","End","Budget","Progress %","Actual Cost"],...st.tasks.map(t=>[t.code||"",pn_(t.phase),t.name,t.owner,t.start,t.end,t.budget,t.progress||0,t.actual||0])],"WBS");
+ add([["Notes"],["Dates: YYYY-MM-DD, DD/MM/YYYY or real Excel dates."],["Progress %: 0-100 (or an Excel percentage)."],["To update progress later, edit Progress % and Actual Cost, then use 'Import progress from Excel'. Rows are matched by WBS code or Task name."]],"Notes");
+ return wb}
+function exportX(){if(!needX())return;if(!S.project){toast("Create a project first, or download the template.");return}
+ recode();XLSX.writeFile(buildWB(S),(S.project.name||"project").replace(/[^\w\-]+/g,"_")+".xlsx")}
+function template(){if(!needX())return;const d=n=>iso(new Date(Date.now()+n*864e5)),a={id:"a",name:"Design"},b={id:"b",name:"Construction"};
+ XLSX.writeFile(buildWB({project:{name:"My Project",owner:"Project Manager",start:d(0),end:d(60),budget:100000,cur:"$"},phases:[{...a,start:d(0),end:d(20)},{...b,start:d(15),end:d(60)}],
+ tasks:[{code:"1.1",phase:"a",name:"Drawings",owner:"Dina",start:d(0),end:d(10),budget:20000,progress:50,actual:9000},{code:"1.2",phase:"a",name:"Approval",owner:"Budi",start:d(10),end:d(20),budget:10000,progress:0,actual:0},
+ {code:"2.1",phase:"b",name:"Foundation",owner:"Eko",start:d(15),end:d(40),budget:40000,progress:0,actual:0},{code:"2.2",phase:"b",name:"Structure",owner:"Eko",start:d(35),end:d(60),budget:30000,progress:0,actual:0}]}),"project-template.xlsx")}
+
+/* ---------- demo / reset ---------- */
+function demo(){const d=n=>iso(new Date(Date.now()+n*864e5));
+ S={project:{name:"Warehouse Construction",owner:"A. Rahman",start:d(-40),end:d(80),budget:500000,cur:"$"},phases:[],tasks:[],log:{}};
+ const P=[["Design",-40,-10],["Procurement",-20,20],["Construction",0,70],["Handover",60,80]].map(([n,a,b])=>({id:uid(),name:n,start:d(a),end:d(b)}));S.phases=P;
+ const k=(p,n,o,a,b,bd,pr,ac)=>S.tasks.push({id:uid(),phase:P[p].id,name:n,owner:o,start:d(a),end:d(b),budget:bd,progress:pr,actual:ac});
+ k(0,"Architectural drawings","Dina",-40,-20,30000,100,31000);k(0,"Structural calculation","Budi",-30,-10,25000,100,24000);
+ k(1,"Steel order & delivery","Sari",-20,10,120000,80,98000);k(1,"Equipment tender","Joko",-5,20,60000,40,20000);
+ k(2,"Foundation","Eko",0,25,90000,60,60000);k(2,"Structure & roof","Eko",20,55,110000,10,12000);k(2,"MEP installation","Lina",40,70,45000,0,0);
+ k(3,"Inspection & handover","A. Rahman",60,80,20000,0,0);
+ S.log[d(-14)]=.18;S.log[d(-7)]=.3;S.log[d(-3)]=.37;recode();save();kpis();go(5)}
+function resetAll(){if(confirm("Delete this project and all data?")){S={project:null,phases:[],tasks:[],log:{}};save();kpis();go(1)}}
+kpis();go(S.project?(S.tasks.length?5:2):1);
+</script>
+</body>
+</html>
